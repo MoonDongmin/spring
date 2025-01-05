@@ -23,9 +23,12 @@ tasks.withType(JavaCompile) {
 
 dependencies {
   compileOnly('jakarta.servlet:jakarta.servlet-api:6.1.0')
-  implementation ('mysql:mysql-connector-java:8.0.33')
 
+  implementation ('mysql:mysql-connector-java:8.0.33')
+  implementation 'org.springframework:spring-core:5.3.29'
+  implementation 'org.springframework:spring-context:5.3.29'
   implementation ('io.github.cdimascio:dotenv-java:2.2.0')
+
   testImplementation("org.junit.jupiter:junit-jupiter-api:${junitVersion}")
   testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${junitVersion}")
 }

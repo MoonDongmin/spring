@@ -1,19 +1,17 @@
 package io.wisoft.tutorial.chapter01.user.dao;
 
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
 public class DaoFactory {
 
+  @Bean
   public UserDao userDao() {
     return new UserDao(connectionMaker());
   }
 
-  public UserDao accountDao() {
-    return new AccountDao(connectionMaker());
-  }
-
-  public UserDao messageDao() {
-    return new MessageDao(connectionMaker());
-  }
-
+  @Bean
   public ConnectionMaker connectionMaker() {
     return new DConnectionMaker();
   }
