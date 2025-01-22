@@ -32,8 +32,7 @@ dependencies {
     implementation("javax.activation:activation:1.1.1")
     implementation ('io.github.cdimascio:dotenv-java:2.2.0')
 
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.11.0'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.11.0'
+    testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.hamcrest:hamcrest:2.2'
     testImplementation("org.assertj:assertj-core:3.23.1")
     testImplementation("org.springframework:spring-test:5.3.22")
@@ -42,5 +41,5 @@ dependencies {
 }
 
 test {
-    useJUnitPlatform()
+    useTestNG()
 }

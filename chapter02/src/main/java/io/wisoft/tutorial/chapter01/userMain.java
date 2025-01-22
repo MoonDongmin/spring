@@ -3,7 +3,6 @@ package io.wisoft.tutorial.chapter01;
 import io.wisoft.tutorial.chapter01.user.dao.DaoFactory;
 import io.wisoft.tutorial.chapter01.user.dao.UserDao;
 import io.wisoft.tutorial.chapter01.user.domain.User;
-import org.junit.runner.JUnitCore;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
