@@ -12,6 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import javax.sql.DataSource;
 import java.util.List;
 
 import static io.wisoft.seminar.vol1.service.UserService.MIN_LOGCOUNT_FOR_SILVER;
@@ -21,6 +22,8 @@ import static org.assertj.core.api.Assertions.*;
 @SpringBootTest
 @ContextConfiguration(locations = "/applicationContext.xml")
 class UserServiceTest {
+  @Autowired
+  DataSource dataSource;
 
   @Autowired
   private UserService userService;
@@ -46,9 +49,9 @@ class UserServiceTest {
   }
 
   @Test
-  public void upgradeLevel(){
+  public void upgradeLevel() {
     Level[] levels = Level.values();
-    for(Level level: levels){
+    for (Level level : levels) {
       if (level.nextLevel() == null) continue;
       user.setLevel(level);
       user.upgradeLevel();
@@ -56,10 +59,10 @@ class UserServiceTest {
     }
   }
 
-  @Test(expected=IllegalStateException.class)
-  public void cannotUpdateLevel(){
+  @Test(expected = IllegalStateException.class)
+  public void cannotUpdateLevel() {
     Level[] levels = Level.values();
-    for(Level level: levels){
+    for (Level level : levels) {
       if (level.nextLevel() == null) continue;
       user.setLevel(level);
       user.upgradeLevel();
@@ -68,13 +71,12 @@ class UserServiceTest {
 
   @Test
   public void upgradeAllOrNothing() throws Exception {
-    userDao.deleteAll();
-
-    final UserService testUserService = new TestUserService(users.get(3)
+    UserService testUserService = new TestUserService(users.get(3)
             .getId());
     testUserService.setUserDao(this.userDao);
     testUserService.setTransactionManager(transactionManager);
-    testUserService.setUserLevelUpgradePolicy(upgradePolicy);
+
+    userDao.deleteAll();
 
     for (User user : users) {
       userDao.add(user);
@@ -87,7 +89,7 @@ class UserServiceTest {
       e.getMessage();
     }
 
-    checkLevel(users.get(3), false);
+    checkLevel(users.get(1), false);
   }
 
 
@@ -142,21 +144,16 @@ class UserServiceTest {
   }
 
   static class TestUserService extends UserService {
-    private final String failUserId;
+    private String id;
 
-    public TestUserService(String failUserId) {
-      this.failUserId = failUserId;
+    private TestUserService(String id) {
+      this.id = id;
     }
 
-    @Override
-    protected void upgradeLevels() throws Exception {
-      if (failUserId.equals("madnite1")) {
-        throw new TestUserServiceException();
-      }
-      super.upgradeLevels();  // Call the original method
-
+    protected void upgradeLevel(User user) {
+      if (user.getId().equals(this.id)) throw new TestUserServiceException();
+      super.upgradeLevel(user);
     }
-
   }
 
 

@@ -2,6 +2,7 @@ package io.wisoft.seminar.vol1.dao;
 
 import io.wisoft.seminar.vol1.domain.User;
 
+import java.sql.Connection;
 import java.util.List;
 
 public interface UserDao {
@@ -16,6 +17,6 @@ public interface UserDao {
 
   int getCount();
 
-  public void update(final User user);
+  public void update(User user);
 
 }
