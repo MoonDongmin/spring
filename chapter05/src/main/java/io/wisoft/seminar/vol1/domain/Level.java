@@ -1,14 +1,15 @@
 package io.wisoft.seminar.vol1.domain;
 
-import org.hibernate.AssertionFailure;
-
 public enum Level {
-  BASIC(1, SILVER), SILVER(2, GOLD), GOLD(3, null);
+  GOLD(3, null),
+  SILVER(2, GOLD),
+  BASIC(1, SILVER);
+
 
   private final int value;
   private final Level next;
 
-  Level(int value, Level next) {
+  Level(final int value, final Level next) {
     this.value = value;
     this.next = next;
   }
@@ -22,15 +23,12 @@ public enum Level {
   }
 
   public static Level valueOf(int value) {
-    switch (value) {
-      case 1:
-        return BASIC;
-      case 2:
-        return SILVER;
-      case 3:
-        return GOLD;
-      default:
-        throw new AssertionError("Unknown value: " + value);
-    }
+    return switch (value) {
+      case 1 -> BASIC;
+      case 2 -> SILVER;
+      case 3 -> GOLD;
+      default -> throw new AssertionError("Unknown Level value: " + value);
+    };
   }
+
 }

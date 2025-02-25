@@ -36,7 +36,7 @@ public class ApplicationContextTest {
     assertThat(testObjects).doesNotContain(this);
     testObjects.add(this);
 
-    assertThat(contextObject==null|| contextObject == this.context).isTrue();
+    assertThat(contextObject == null || contextObject == this.context).isTrue();
   }
 
   @Test

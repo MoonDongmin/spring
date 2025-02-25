@@ -1,85 +1,85 @@
 package io.wisoft.seminar.vol1.service;
 
 import io.wisoft.seminar.vol1.dao.UserDao;
+import io.wisoft.seminar.vol1.dao.UserLevelUpgradePolicy;
 import io.wisoft.seminar.vol1.domain.Level;
 import io.wisoft.seminar.vol1.domain.User;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.datasource.DataSourceUtils;
+import org.springframework.mail.MailSender;
+import org.springframework.mail.SimpleMailMessage;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.jta.JtaTransactionManager;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import javax.sql.DataSource;
-import java.sql.Connection;
 import java.util.List;
 
 public class UserService {
-  UserDao userDao;
-  public static final int MIN_LOGCOUNT_FOR_SILVER = 50;
-  public static final int MIN_RECOMMEND_FOR_GOLD = 30;
-  private DataSource dataSource;
+
+  private UserDao userDao;
+  private UserLevelUpgradePolicy upgradePolicy;
   private PlatformTransactionManager transactionManager;
+  private MailSender mailSender;
+
+  public void setUserDao(final UserDao userDao) {
+    this.userDao = userDao;
+  }
+
+  public void setUserLevelUpgradePolicy(final UserLevelUpgradePolicy upgradePolicy) {
+    this.upgradePolicy = upgradePolicy;
+  }
 
   public void setTransactionManager(final PlatformTransactionManager transactionManager) {
     this.transactionManager = transactionManager;
   }
 
-  public void setDataSource(DataSource dataSource) {
-    this.dataSource = dataSource;
-  }
-
-  public void setUserDao(UserDao userDao) {
-    this.userDao = userDao;
+  public void setMailSender(final MailSender mailSender) {
+    this.mailSender = mailSender;
   }
 
   public void upgradeLevels() throws Exception {
-//    PlatformTransactionManager txManger = new JtaTransactionManager();
 
-    TransactionStatus status = this.transactionManager.getTransaction(new DefaultTransactionDefinition());
+    TransactionStatus status =
+            this.transactionManager.getTransaction(new DefaultTransactionDefinition());
+
     try {
-      List<User> users = null;
-      for (User user : users) {
-        if (canUpgradeLevel(user)) {
-          upgradeLevel(user);
+      final List<User> users = userDao.getAll();
+
+      for (final User user : users) {
+
+        if (upgradePolicy.canUpgradeLevel(user)) {
+          upgradePolicy.upgradeLevel(user);
+          userDao.update(user);
+          sendUpgradeEmail(user);
         }
+
       }
       this.transactionManager.commit(status);
+
     } catch (Exception e) {
       this.transactionManager.rollback(status);
       throw e;
     }
+
   }
 
-  protected void upgradeLevel(final User user) {
-    user.upgradeLevel();
-    userDao.update(user);
+  // 한글 인코딩 생략
+  private void sendUpgradeEmail(User user) {
+
+    SimpleMailMessage mailMessage = new SimpleMailMessage();
+
+    mailMessage.setTo(user.getEmail());
+    mailMessage.setFrom("useradmin@ksug.org");
+    mailMessage.setSubject("Upgrade 안내");
+    mailMessage.setText("사용자님의 등급이 " + user.getLevel().name() + "로 업그레이드되었습니다.");
+
+    this.mailSender.send(mailMessage);
   }
 
-  private boolean canUpgradeLevel(final User user) {
-    Level currentLevel = user.getLevel();
-    switch (currentLevel) {
-      case BASIC:
-        return (user.getLogin() >= MIN_LOGCOUNT_FOR_SILVER);
-      case SILVER:
-        return (user.getRecommend() >= MIN_RECOMMEND_FOR_GOLD);
-      case GOLD:
-        return false;
-      default:
-        throw new IllegalArgumentException("Unknown Level: " +
-                currentLevel);
-    }
-  }
 
   public void add(final User user) {
-    if (user.getLevel() == null) user.setLevel(Level.BASIC);
+    if (user.getLevel() == null) {
+      user.setLevel(Level.BASIC);
+    }
     userDao.add(user);
   }
 
 }
-
-
-
-
