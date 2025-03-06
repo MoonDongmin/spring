@@ -1,4 +1,4 @@
-package tobyspring.vol1.service;
+package vol1.service;
 
 import io.wisoft.seminar.vol1.dao.UserDaoJdbc;
 import io.wisoft.seminar.vol1.dao.UserLevelUpgradePolicy;
@@ -6,6 +6,8 @@ import io.wisoft.seminar.vol1.domain.Level;
 import io.wisoft.seminar.vol1.domain.User;
 import io.wisoft.seminar.vol1.service.DefaultUserLevelUpgradePolicy;
 import io.wisoft.seminar.vol1.service.UserService;
+import io.wisoft.seminar.vol1.service.UserServiceImpl;
+import io.wisoft.seminar.vol1.service.UserServiceTx;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,13 +33,21 @@ import static org.assertj.core.api.Assertions.fail;
 class UserServiceTest {
 
   @Autowired
-  private UserService userService;
+  UserService userService;
+
+  @Autowired
+  UserServiceImpl userServiceImpl;
+
   List<User> users;
+
   @Autowired
   private UserDaoJdbc userDao;
+
   @Autowired
   private PlatformTransactionManager transactionManager;
+
   private UserLevelUpgradePolicy upgradePolicy;
+
   @Autowired
   private MailSender mailSender;
 
@@ -52,26 +62,27 @@ class UserServiceTest {
             new User("green", "오민규", "p5", "e@email.com", Level.GOLD, 100, Integer.MAX_VALUE));
 
     upgradePolicy = new DefaultUserLevelUpgradePolicy();
-    userService.setUserLevelUpgradePolicy(upgradePolicy);
+    userServiceImpl.setUserLevelUpgradePolicy(upgradePolicy);
   }
 
   @Test
   public void upgradeAllOrNothing() throws Exception {
-    userDao.deleteAll();
-
-    final UserService testUserService = new TestUserService(users.get(3).getId());
-
+    final UserServiceImpl testUserService = new TestUserService(users.get(3).getId());
     testUserService.setUserDao(this.userDao);
-    testUserService.setTransactionManager(transactionManager);
-    testUserService.setUserLevelUpgradePolicy(upgradePolicy);
     testUserService.setMailSender(this.mailSender);
+
+    UserServiceTx txUserService = new UserServiceTx();
+    txUserService.setTransactionManager(transactionManager);
+    txUserService.setUserService(testUserService);
+
+    userDao.deleteAll();
 
     for (User user : users) {
       userDao.add(user);
     }
 
     try {
-      testUserService.upgradeLevels();
+      txUserService.upgradeLevels();
       fail("TestUserServiceException expected");
     } catch (TestUserServiceException e) {
       e.getMessage();
@@ -83,7 +94,7 @@ class UserServiceTest {
 
   @Test
   @DirtiesContext
-  public void upgradeLevels() throws Exception {
+  public void upgradeLevels() {
     userDao.deleteAll();
 
     for (User user : users) {
@@ -91,7 +102,7 @@ class UserServiceTest {
     }
 
     MockMailSender mockMailSender = new MockMailSender();
-    userService.setMailSender(mockMailSender);
+    userServiceImpl.setMailSender(mockMailSender);
 
     userService.upgradeLevels();
 
@@ -140,7 +151,7 @@ class UserServiceTest {
 
   }
 
-  static class TestUserService extends UserService {
+  static class TestUserService extends UserServiceImpl {
     private final String failUserId;
 
     public TestUserService(String failUserId) {
@@ -148,7 +159,7 @@ class UserServiceTest {
     }
 
     @Override
-    public void upgradeLevels() throws Exception {
+    public void upgradeLevels() {
       if (failUserId.equals("madnite1")) {
         throw new TestUserServiceException();
       }
