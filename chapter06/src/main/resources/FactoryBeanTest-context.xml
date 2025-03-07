@@ -1,0 +1,4 @@
+<bean id="message"
+      class="io/wisoft/seminar/proxy/MessageFactoryBean.java">
+    <property name="text" value="Factory Bean"/>
+</bean>

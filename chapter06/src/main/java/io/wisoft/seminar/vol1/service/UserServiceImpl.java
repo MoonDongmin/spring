@@ -71,6 +71,9 @@ public class UserServiceImpl implements UserService {
   }
 
   public void upgradeLevel(final User user) {
+    user.upgradeLevel();
+    userDao.update(user);
+    sendUpgradeEmail(user);
 
   }
 }
