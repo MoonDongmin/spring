@@ -4,6 +4,7 @@ import io.wisoft.seminar.vol1.dao.UserDao;
 import io.wisoft.seminar.vol1.dao.UserLevelUpgradePolicy;
 import io.wisoft.seminar.vol1.domain.Level;
 import io.wisoft.seminar.vol1.domain.User;
+import jakarta.transaction.Transactional;
 import org.springframework.mail.MailSender;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -12,6 +13,7 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import java.util.List;
 
+@Transactional
 public class UserServiceImpl implements UserService {
 
   private UserDao userDao;
@@ -75,5 +77,21 @@ public class UserServiceImpl implements UserService {
     userDao.update(user);
     sendUpgradeEmail(user);
 
+  }
+
+  public void deleteAll() {
+    userDao.deleteAll();
+  }
+
+  public User get(String id) {
+    return userDao.get(id);
+  }
+
+  public List<User> getAll() {
+    return userDao.getAll();
+  }
+
+  public void update(final User user) {
+    userDao.update(user);
   }
 }

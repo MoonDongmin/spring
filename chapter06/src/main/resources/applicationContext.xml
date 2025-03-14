@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:tx="http://www.springframework.org/schema/tx"
        xsi:schemaLocation="http://www.springframework.org/schema/beans
-						http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+						http://www.springframework.org/schema/beans/spring-beans-3.0.xsd http://www.springframework.org/schema/aop https://www.springframework.org/schema/aop/spring-aop.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
 
     <bean id="dataSource" class="org.springframework.jdbc.datasource.SimpleDriverDataSource">
         <property name="driverClass" value="org.postgresql.Driver"/>
@@ -19,14 +20,14 @@
         <property name="dataSource" ref="dataSource"/>
     </bean>
 
-    <bean id="userService" class="org.springframework.aop.framework.ProxyFactoryBean">
-        <property name="target" ref="userServiceImpl"/>
-        <property name="interceptorNames">
-            <list>
-                <value>transactionAdvisor</value>
-            </list>
-        </property>
+    <bean id="userService" class="io.wisoft.seminar.vol1.service.UserServiceImpl">
+        <property name="userDao" value="userDao"/>
+        <property name="mailSender" ref="mailSender"/>
     </bean>
+
+    <bean id="testUserService"
+          class="io.wisoft.seminar.vol1.service.UserServiceTest$TestUserServiceImpl"
+          parent="userServiceImpl"/>
 
     <bean id="userServiceImpl" class="io.wisoft.seminar.vol1.service.UserServiceImpl">
         <property name="userDao" ref="userDao"/>
@@ -37,17 +38,35 @@
         <property name="dataSource" ref="dataSource"/>
     </bean>
 
-    <bean id="transactionAdvice" class="io.wisoft.seminar.vol1.service.TransactionAdvice">
-        <property name="transactionManager" ref="transactionManager"/>
-    </bean>
+    <!--    <bean id="transactionAdvice" class="org.springframework.transaction.interceptor.TransactionInterceptor">-->
+    <!--        <property name="transactionManager" ref="transactionManager"/>-->
+    <!--        <property name="transactionAttributes">-->
+    <!--            <props>-->
+    <!--                <prop key="get*">PROPAGATION_REQUIRED, readOnly, timeout_30</prop>-->
+    <!--                <prop key="upgrade*">PROPAGATION_REQUIRES_NEW, ISOLATION_SERIALIZABLE</prop>-->
+    <!--                <prop key="*">PROPAGATION_REQUIRED</prop>-->
+    <!--            </props>-->
+    <!--        </property>-->
+    <!--    </bean>-->
 
-    <bean id="transactionPoincut" class="org.springframework.aop.support.NameMatchMethodPointcut">
-        <property name="mappedName" value="upgrade*"/>
+    <tx:advice id="transactionAdvice" transaction-manager="transactionManager">
+        <tx:attributes>
+            <tx:method name="get*" read-only="true"/>
+            <tx:method name="*"/>
+            <!--            <tx:method name="get*" propagation="REQUIRED" read-only="true" timeout="30"/>-->
+            <!--            <tx:method name="upgrade*" propagation="REQUIRES_NEW"-->
+            <!--                       isolation="SERIALIZABLE"/>-->
+            <!--            <tx:method name="*" propagation="REQUIRED"/>-->
+        </tx:attributes>
+    </tx:advice>
+
+    <bean id="transactionPointcut" class="org.springframework.aop.aspectj.AspectJExpressionPointcut">
+        <property name="expression" value="execution(* *..*ServiceImpl.upgrade*(..))"/>
     </bean>
 
     <bean id="transactionAdvisor" class="org.springframework.aop.support.DefaultPointcutAdvisor">
         <property name="advice" ref="transactionAdvice"/>
-        <property name="pointcut" ref="transactionPoincut"/>
+        <property name="pointcut" ref="transactionPointcut"/>
     </bean>
 
     <bean id="userLevelUpgradePolicy" class="io.wisoft.seminar.vol1.service.DefaultUserLevelUpgradePolicy">
@@ -55,6 +74,11 @@
     <bean id="mailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
         <property name="host" value="mail.server.com"/>
     </bean>
+
+    <aop:config>
+        <aop:advisor advice-ref="transactionAdvice" pointcut="bean(*Service)"/>
+    </aop:config>
+
     <!--    <bean id="mailSender2" class="io.wisoft.dao.vol1.io.wisoft.seminar.DummyMailSender"/>-->
 
     <!--	<bean id="userLevelUpgradePolicy" class="tobyspring.vol1.service.DefaultUserLevelUpgradePolicy">-->

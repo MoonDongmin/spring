@@ -1,12 +1,10 @@
-package vol1.service;
+package io.wisoft.seminar.vol1.service;
 
 import io.wisoft.seminar.vol1.dao.UserDao;
 import io.wisoft.seminar.vol1.dao.UserDaoJdbc;
 import io.wisoft.seminar.vol1.dao.UserLevelUpgradePolicy;
 import io.wisoft.seminar.vol1.domain.Level;
 import io.wisoft.seminar.vol1.domain.User;
-import io.wisoft.seminar.vol1.service.*;
-import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -18,13 +16,9 @@ import org.springframework.mail.MailException;
 import org.springframework.mail.MailSender;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.DefaultTransactionDefinition;
 
-import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -32,11 +26,11 @@ import java.util.Objects;
 import static io.wisoft.seminar.vol1.service.DefaultUserLevelUpgradePolicy.MIN_LOGCOUNT_FOR_SILVER;
 import static io.wisoft.seminar.vol1.service.DefaultUserLevelUpgradePolicy.MIN_RECOMMEND_FOR_GOLD;
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @SpringBootTest
 @ContextConfiguration(locations = "/applicationContext.xml")
-@Transactional
 class UserServiceTest {
 
   @Autowired
@@ -77,28 +71,20 @@ class UserServiceTest {
     userServiceImpl.setUserLevelUpgradePolicy(upgradePolicy);
   }
 
-  @Test
-  @Transactional
-  @Rollback(false)
-  public void transactionSync() {
-      userService.deleteAll();
-      userService.add(users.get(0));
-      userService.add(users.get(1));
-  }
 
   @Test
-  public void readOnlyTransactionAttribute() {
-    testUserService.getAll();
-  }
-
-  @Test
-  public void advisorAutoProxyCreator() {
-    assertThat(testUserService).isEqualTo(java.lang.reflect.Proxy.class);
-  }
-
-
-  @Test
+  @DirtiesContext
   public void upgradeAllOrNothing() throws Exception {
+    final UserServiceImpl testUserService = new TestUserService(users.get(3).getId());
+    testUserService.setUserDao(this.userDao);
+    testUserService.setMailSender(this.mailSender);
+
+    ProxyFactoryBean txProxyFactoryBean =
+            context.getBean("&userService", ProxyFactoryBean.class);
+    txProxyFactoryBean.setTarget(testUserService);
+    UserService txUserService =
+            (UserService) txProxyFactoryBean.getObject();
+
     userDao.deleteAll();
 
     for (User user : users) {
@@ -106,7 +92,7 @@ class UserServiceTest {
     }
 
     try {
-      this.testUserService.upgradeLevels();
+      txUserService.upgradeLevels();
       fail("TestUserServiceException expected");
     } catch (TestUserServiceException e) {
       e.getMessage();
@@ -193,12 +179,6 @@ class UserServiceTest {
 
     }
 
-    public List<User> getAll() {
-      for (User user : super.getAll()) {
-        super.update(user);
-      }
-      return null;
-    }
   }
 
 
